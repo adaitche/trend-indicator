@@ -1,0 +1,557 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Trend Indicator</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <main>
+      <h1>Trend Indicator</h1>
+      <div class="filters">
+        <div class="search">
+          <label for="ticker">Ticker</label>
+          <button
+            type="button"
+            class="info"
+            aria-label="About ticker search"
+            popovertarget="ticker-search-info"
+          >
+            ⓘ
+          </button>
+          <input
+            id="ticker"
+            type="search"
+            title="Tickers or * patterns separated by commas or whitespace; case is ignored"
+            autocomplete="off"
+            spellcheck="false"
+          />
+        </div>
+        <button id="reset-filters" type="button" disabled>Reset</button>
+        <label class="extra-info-toggle">
+          <input id="extra-info" type="checkbox" /> Show extra info
+        </label>
+      </div>
+      <div class="metadata" aria-label="Snapshot information">
+        <p id="snapshot">Loading snapshot…</p>
+        <p id="count" role="status" aria-live="polite"></p>
+      </div>
+      <div class="table-scroll">
+        <table id="prices-table" class="hide-extra-info">
+          <caption class="visually-hidden">
+            Ticker types, daily and weekly trends, and trend duration in observed daily
+            and weekly bars, with completed-trade return statistics
+          </caption>
+          <thead>
+            <tr class="signal-headings">
+              <th rowspan="2" scope="col">Ticker</th>
+              <th rowspan="2" scope="col" class="extra-info classification">Sector</th>
+              <th rowspan="2" scope="col" class="extra-info classification industry">Industry</th>
+              <th rowspan="2" scope="col" class="extra-info size-category" data-size-info="scalerevenue">Revenue<br />size</th>
+              <th rowspan="2" scope="col" class="extra-info size-category market-cap" data-size-info="scalemarketcap">Market Cap</th>
+              <th rowspan="2" scope="col">
+                Type
+                <button
+                  type="button"
+                  class="info"
+                  aria-label="About ticker types"
+                  popovertarget="ticker-types-info"
+                >
+                  ⓘ
+                </button>
+              </th>
+              <th rowspan="2" scope="col">
+                Daily trend
+                <button
+                  type="button"
+                  class="info"
+                  aria-label="About trends"
+                  popovertarget="trend-info"
+                >
+                  ⓘ
+                </button>
+              </th>
+              <th rowspan="2" scope="col">
+                Weekly trend
+                <button
+                  type="button"
+                  class="info"
+                  aria-label="About trends"
+                  popovertarget="trend-info"
+                >
+                  ⓘ
+                </button>
+              </th>
+              <th
+                rowspan="2"
+                scope="col"
+                class="number"
+                id="days-heading"
+                aria-sort="none"
+              >
+                <button
+                  data-sort="daily_trend_days"
+                  type="button"
+                  title="Sort by observed trading bars"
+                >
+                  Trend days <span class="sort-order" aria-hidden="true">↕</span>
+                </button>
+                <button
+                  type="button"
+                  class="info"
+                  aria-label="About Trend days"
+                  popovertarget="trend-days-info"
+                >
+                  ⓘ
+                </button>
+              </th>
+              <th
+                rowspan="2"
+                scope="col"
+                class="number"
+                id="weeks-heading"
+                aria-sort="none"
+                title="Completed weekly bars since detection; detection is zero and warnings do not reset the count"
+              >
+                <button
+                  data-sort="weekly_trend_weeks"
+                  type="button"
+                  title="Sort by completed weekly bars"
+                >
+                  Trend weeks <span class="sort-order" aria-hidden="true">↕</span>
+                </button>
+                <button
+                  type="button"
+                  class="info"
+                  aria-label="About Trend weeks"
+                  popovertarget="trend-weeks-info"
+                >
+                  ⓘ
+                </button>
+              </th>
+              <th scope="colgroup" colspan="5" class="trade-group group-start">
+                Statistics of trades based on daily trends
+                <button
+                  type="button"
+                  class="info"
+                  aria-label="About daily trade statistics"
+                  popovertarget="trade-info"
+                >
+                  ⓘ
+                </button>
+              </th>
+              <th scope="colgroup" colspan="5" class="trade-group group-start">
+                Statistics of trades based on weekly trends
+                <button
+                  type="button"
+                  class="info"
+                  aria-label="About weekly trade statistics"
+                  popovertarget="trade-info"
+                >
+                  ⓘ
+                </button>
+              </th>
+            </tr>
+            <tr>
+              <th
+                scope="col"
+                class="number trade-statistic group-start"
+                aria-sort="none"
+              >
+                <button
+                  data-sort="daily_mean_return_pct"
+                  type="button"
+                  title="Arithmetic mean return per completed trade"
+                >
+                  Mean<br />return <span class="sort-order" aria-hidden="true">↕</span>
+                </button>
+              </th>
+              <th scope="col" class="number trade-statistic" aria-sort="none">
+                <button
+                  data-sort="daily_last_return_pct"
+                  type="button"
+                  title="Return of the most recently exited trade"
+                >
+                  Last<br />return <span class="sort-order" aria-hidden="true">↕</span>
+                </button>
+              </th>
+              <th scope="col" class="number trade-statistic" aria-sort="none">
+                <button
+                  data-sort="daily_trade_count"
+                  type="button"
+                  title="Number of completed trades"
+                >
+                  Trades <span class="sort-order" aria-hidden="true">↕</span>
+                </button>
+              </th>
+              <th scope="col" class="number trade-statistic" aria-sort="none">
+                <button
+                  data-sort="daily_mean_holding_days"
+                  type="button"
+                  title="Mean holding period in calendar days"
+                >
+                  Mean days <span class="sort-order" aria-hidden="true">↕</span>
+                </button>
+              </th>
+              <th scope="col" class="number trade-statistic" aria-sort="none">
+                <button
+                  data-sort="daily_return_pct_per_day"
+                  type="button"
+                  title="Pooled return per invested calendar day, in percent"
+                >
+                  Return<br />/ day <span class="sort-order" aria-hidden="true">↕</span>
+                </button>
+                <button
+                  type="button"
+                  class="info"
+                  aria-label="About daily return per invested day"
+                  popovertarget="return-rate-info"
+                >
+                  ⓘ
+                </button>
+              </th>
+              <th
+                scope="col"
+                class="number trade-statistic group-start"
+                aria-sort="none"
+              >
+                <button
+                  data-sort="weekly_mean_return_pct"
+                  type="button"
+                  title="Arithmetic mean return per completed trade"
+                >
+                  Mean<br />return <span class="sort-order" aria-hidden="true">↕</span>
+                </button>
+              </th>
+              <th scope="col" class="number trade-statistic" aria-sort="none">
+                <button
+                  data-sort="weekly_last_return_pct"
+                  type="button"
+                  title="Return of the most recently exited trade"
+                >
+                  Last<br />return <span class="sort-order" aria-hidden="true">↕</span>
+                </button>
+              </th>
+              <th scope="col" class="number trade-statistic" aria-sort="none">
+                <button
+                  data-sort="weekly_trade_count"
+                  type="button"
+                  title="Number of completed trades"
+                >
+                  Trades <span class="sort-order" aria-hidden="true">↕</span>
+                </button>
+              </th>
+              <th scope="col" class="number trade-statistic" aria-sort="none">
+                <button
+                  data-sort="weekly_mean_holding_days"
+                  type="button"
+                  title="Mean holding period in calendar days"
+                >
+                  Mean days <span class="sort-order" aria-hidden="true">↕</span>
+                </button>
+              </th>
+              <th scope="col" class="number trade-statistic" aria-sort="none">
+                <button
+                  data-sort="weekly_return_pct_per_day"
+                  type="button"
+                  title="Pooled return per invested calendar day, in percent"
+                >
+                  Return<br />/ day <span class="sort-order" aria-hidden="true">↕</span>
+                </button>
+                <button
+                  type="button"
+                  class="info"
+                  aria-label="About weekly return per invested day"
+                  popovertarget="return-rate-info"
+                >
+                  ⓘ
+                </button>
+              </th>
+            </tr>
+            <tr class="column-filters" aria-label="Column filters">
+              <td></td>
+              <td class="extra-info classification">
+                <details class="filter-menu metadata-filter" id="sector-filter" data-field="sector" data-label="Sector">
+                  <summary aria-label="Sector: All">All</summary>
+                  <fieldset aria-label="Show sector categories"></fieldset>
+                </details>
+              </td>
+              <td class="extra-info classification industry">
+                <details class="filter-menu metadata-filter" id="industry-filter" data-field="industry" data-label="Industry">
+                  <summary aria-label="Industry: All">All</summary>
+                  <fieldset aria-label="Show industry categories"></fieldset>
+                </details>
+              </td>
+              <td class="extra-info size-category">
+                <details class="filter-menu metadata-filter" id="scalerevenue-filter" data-field="scalerevenue" data-label="Revenue size">
+                  <summary aria-label="Revenue size: All">All</summary>
+                  <fieldset aria-label="Show revenue size categories"></fieldset>
+                </details>
+              </td>
+              <td class="extra-info size-category market-cap">
+                <details class="filter-menu metadata-filter" id="scalemarketcap-filter" data-field="scalemarketcap" data-label="Market Cap">
+                  <summary aria-label="Market Cap: All">All</summary>
+                  <fieldset aria-label="Show market cap categories"></fieldset>
+                </details>
+              </td>
+              <td>
+                <details class="filter-menu" id="type-filter">
+                  <summary aria-label="Type: All">All</summary>
+                  <fieldset id="type-options" aria-label="Show ticker types">
+                  </fieldset>
+                </details>
+              </td>
+              <td>
+                <details class="filter-menu" id="status-filter">
+                  <summary aria-label="Daily trend: All">All</summary>
+                  <fieldset aria-label="Show daily trends">
+                    <label><input type="checkbox" name="status" value="1" checked /> Up</label>
+                    <label
+                      ><input type="checkbox" name="status" value="-1" checked /> Down</label
+                    >
+                    <label
+                      ><input type="checkbox" name="status" value="0" checked /> Neutral</label
+                    >
+                  </fieldset>
+                </details>
+              </td>
+              <td>
+                <details class="filter-menu" id="weekly-status-filter">
+                  <summary aria-label="Weekly trend: All">All</summary>
+                  <fieldset aria-label="Show weekly trends">
+                    <label
+                      ><input type="checkbox" name="weekly-status" value="1" checked />
+                      Up</label
+                    >
+                    <label
+                      ><input type="checkbox" name="weekly-status" value="-1" checked />
+                      Down</label
+                    >
+                    <label
+                      ><input type="checkbox" name="weekly-status" value="0" checked />
+                      Neutral</label
+                    >
+                  </fieldset>
+                </details>
+              </td>
+              <td>
+                <div
+                  data-range="daily_trend_days"
+                  data-label="Trend days"
+                ></div>
+              </td>
+              <td>
+                <div
+                  data-range="weekly_trend_weeks"
+                  data-label="Trend weeks"
+                ></div>
+              </td>
+              <td class="trade-statistic group-start">
+                <div
+                  data-range="daily_mean_return_pct"
+                  data-label="Daily mean return %"
+                ></div>
+              </td>
+              <td class="trade-statistic">
+                <div
+                  data-range="daily_last_return_pct"
+                  data-label="Daily last return %"
+                ></div>
+              </td>
+              <td class="trade-statistic">
+                <div
+                  data-range="daily_trade_count"
+                  data-label="Daily trades"
+                ></div>
+              </td>
+              <td class="trade-statistic">
+                <div
+                  data-range="daily_mean_holding_days"
+                  data-label="Daily mean days"
+                ></div>
+              </td>
+              <td class="trade-statistic">
+                <div
+                  data-range="daily_return_pct_per_day"
+                  data-label="Daily return per invested day (%)"
+                ></div>
+              </td>
+              <td class="trade-statistic group-start">
+                <div
+                  data-range="weekly_mean_return_pct"
+                  data-label="Weekly mean return %"
+                ></div>
+              </td>
+              <td class="trade-statistic">
+                <div
+                  data-range="weekly_last_return_pct"
+                  data-label="Weekly last return %"
+                ></div>
+              </td>
+              <td class="trade-statistic">
+                <div
+                  data-range="weekly_trade_count"
+                  data-label="Weekly trades"
+                ></div>
+              </td>
+              <td class="trade-statistic">
+                <div
+                  data-range="weekly_mean_holding_days"
+                  data-label="Weekly mean days"
+                ></div>
+              </td>
+              <td class="trade-statistic">
+                <div
+                  data-range="weekly_return_pct_per_day"
+                  data-label="Weekly return per invested day (%)"
+                ></div>
+              </td>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+      <div id="pagination" hidden>
+        <button id="previous" type="button">Previous</button>
+        <span id="page"></span>
+        <button id="next" type="button">Next</button>
+      </div>
+      <section
+        id="ticker-search-info"
+        class="column-info"
+        popover
+        aria-labelledby="ticker-search-info-heading"
+      >
+        <h2 id="ticker-search-info-heading">Ticker filter</h2>
+        <p>
+          The field accepts a comma-separated or space-separated list of tickers.
+          Matching ignores case. Plain tickers match exactly.
+        </p>
+        <p>
+          Use <code>*</code> for any sequence of characters: <code>A*</code> starts
+          with A, <code>*A</code> ends with A, and <code>*A*</code> contains A.
+        </p>
+      </section>
+      <section
+        id="trade-info"
+        class="column-info"
+        popover
+        aria-labelledby="trade-info-heading"
+      >
+        <h2 id="trade-info-heading">Trade Statistics</h2>
+        <p>
+          Simulated trades are entered and exited based on the trend indicator. A DOWN
+          indicator means a short trade was entered. Statistics are computed over these
+          simulated trades.
+        </p>
+        <p>
+          The trades are entered one trading day after the trend was detected, e.g. when
+          a daily/weekly trend is detected at the close on Friday, the trade is
+          entered at the open price the following Monday. The trade is exited on the
+          trading day following the end of the trend, also at the open price.
+        </p>
+        <p>
+          Mean return and mean days are arithmetic averages over completed trades,
+          with equal weight per trade. Holding time uses calendar days. Trades
+          counts completed trades; Last return is the latest completed trade's return.
+        </p>
+        <p>Returns don't include trading costs, dividends or short-borrow costs.</p>
+      </section>
+      <section
+        id="return-rate-info"
+        class="column-info"
+        popover
+        aria-labelledby="return-rate-info-heading"
+      >
+        <h2 id="return-rate-info-heading">Return per invested day</h2>
+        <p>
+          <strong>Return / day</strong> is total trade return divided by total calendar
+          holding days, assuming equal entry notionals. It equals mean return
+          divided by mean holding days. Calculated before rounding.
+        </p>
+        <p>
+          For example, a 2% mean return and 10 mean holding days give 0.20%/day.
+          Idle days between trades are excluded;
+          returns are not compounded or annualized. A dash means no completed
+          trades or zero total holding days.
+        </p>
+      </section>
+      <section
+        id="trend-info"
+        class="column-info"
+        popover
+        aria-labelledby="trend-info-heading"
+      >
+        <h2 id="trend-info-heading">Daily and weekly trends</h2>
+        <p>
+          Daily and weekly trends are computed from daily/weekly prices, according to
+          the Cerlogic criterion.
+        </p>
+        <p>
+          Weekly trends use <em>completed</em> weekly bars. A dash means none is
+          available.
+        </p>
+        <p>
+          A light color (green or red) indicates a trend with a warning, i.e. the
+          continuation condition has failed once and the trend may end. Two consecutive
+          failures end the trend; two consecutive continuation bars clear the warning.
+        </p>
+        <p>
+          The shown percentage is the price change from the next daily open after trend
+          confirmation to the latest daily close, for both timeframes. This simulates
+          the entry price following trend confirmation. Weekly entry follows completion
+          of the signal week. Warning states do not reset entry.
+        </p>
+      </section>
+      <section
+        id="trend-days-info"
+        class="column-info"
+        popover
+        aria-labelledby="trend-days-info-heading"
+      >
+        <h2 id="trend-days-info-heading">Trend days</h2>
+        <p>
+          Completed observed daily bars since trend detection. The detection bar is 0;
+          the next completed bar is 1. Warning states do not reset the count.
+        </p>
+      </section>
+      <section
+        id="trend-weeks-info"
+        class="column-info"
+        popover
+        aria-labelledby="trend-weeks-info-heading"
+      >
+        <h2 id="trend-weeks-info-heading">Trend weeks</h2>
+        <p>
+          Completed weekly bars since trend detection. The detection week is 0; the next
+          completed week is 1. Warning states do not reset the count.
+        </p>
+      </section>
+      <section
+        id="ticker-types-info"
+        class="column-info"
+        popover
+        aria-labelledby="ticker-types-info-heading"
+      >
+        <h2 id="ticker-types-info-heading">Ticker types</h2>
+        <ul id="type-codes" class="type-codes"></ul>
+        <p>
+          Hover over a type to see its original Sharadar category. A dash means no
+          type is available.
+        </p>
+        <p>
+          Source:
+          <a
+            href="https://sharadar.com/docs/tickers"
+            target="_blank"
+            rel="noopener noreferrer"
+            >Sharadar categories</a
+          >
+          (2026-10-26).
+        </p>
+      </section>
+    </main>
+  </body>
+</html>
